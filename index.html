@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Universal Player</title>
+    <style>
+        :root {
+            --primary: #00d2ff;
+            --secondary: #3a7bd5;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .glass-panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 900px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(to right, #00d2ff, #94fbab);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .search-wrapper {
+            position: relative;
+            display: flex;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 30px;
+        }
+
+        input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px 20px;
+            color: white;
+            font-size: 16px;
+            outline: none;
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 210, 255, 0.4);
+            filter: brightness(1.1);
+        }
+
+        button:active { transform: translateY(0); }
+
+        .video-container {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        #displayArea {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+        }
+
+        iframe, video {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .status-badge {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="glass-panel">
+    <h1>Media Player Pro</h1>
+
+    <div class="search-wrapper">
+        <input type="text" id="urlInput" placeholder="Вставьте ссылку на YouTube, VK или MP4...">
+        <button onclick="smartLoad()">Запустить</button>
+    </div>
+
+    <div class="video-container" id="displayArea">
+        <div class="icon">🎬</div>
+        <div>Готов к работе</div>
+    </div>
+</div>
+
+<script>
+    function smartLoad() {
+        let input = document.getElementById('urlInput').value.trim();
+        const display = document.getElementById('displayArea');
+        
+        if (!input) return;
+
+        display.innerHTML = '<div class="status-badge">Загрузка...</div>';
+
+        // 1. YouTube
+        const ytMatch = input.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v(?:\/|=)|(?:.*embed\/)|(?:.*shorts\/)))([^?&"'>]+)/);
+        
+        // 2. VK
+        const vkMatch = input.match(/video(-?\d+_\d+)/);
+        
+        // 3. Direct File
+        const isDirectFile = /\.(mp4|webm|ogg|mov)$/i.test(input);
+
+        setTimeout(() => {
+            if (ytMatch) {
+                display.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+            } 
+            else if (vkMatch || input.includes('vk.com/video_ext.php')) {
+                let finalUrl = input;
+                if (vkMatch) {
+                    const ids = vkMatch[1].split('_');
+                    finalUrl = `https://vk.com/video_ext.php?oid=${ids[0]}&id=${ids[1]}`;
+                } else if (input.includes('src=')) {
+                    const match = input.match(/src="([^"]+)"/);
+                    finalUrl = match ? match[1] : input;
+                }
+                display.innerHTML = `<iframe src="${finalUrl}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+            }
+            else if (isDirectFile) {
+                display.innerHTML = `<video controls autoplay><source src="${input}" type="video/mp4">Формат не поддерживается</video>`;
+            }
+            else {
+                // Пытаемся как iframe для прочих сайтов
+                display.innerHTML = `<iframe src="${input}" allowfullscreen></iframe>`;
+            }
+        }, 400); // Небольшая задержка для эффекта загрузки
+    }
+
+    // Позволяет нажимать Enter для поиска
+    document.getElementById('urlInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') smartLoad();
+    });
+</script>
+
+</body>
+</html>
